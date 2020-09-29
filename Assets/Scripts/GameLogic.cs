@@ -19,6 +19,7 @@ public class GameLogic : MonoBehaviour
 
     public float playerSpeed;
     public float canvasSpeed;
+    public float rotateSpeed = 20f;
     public float upForce = 100f;
 
     public bool moveUnlocked, jumpUnlocked, shiftUnlocked, rotateUnlocked;
@@ -28,11 +29,18 @@ public class GameLogic : MonoBehaviour
 
     public TrailRenderer trail;
 
+    public List<MeshRenderer> meshRenderers;
+
+    public Sprite allAxis, verticalAxis;
+    public Image joystickBackground;
+
+    public bool trigger = false;
+    public bool leftButtonPressed, rightButtonPressed, upButtonPressed, downButtonPressed;
+
     // All Private Inputs (Same as Non-Serialized Attributes)
 
     private bool origin = true;
-    private bool trigger = false;
-    private bool jumpPressed = false;
+    private bool jumpPressed = false;   
 
     private float timer = 0;  
     private float jumpTimer = 1f;
@@ -43,7 +51,11 @@ public class GameLogic : MonoBehaviour
 
     private PostProcessVolume volume;
     private Bloom bloom;
-    private ChromaticAberration chromatic; 
+    private ChromaticAberration chromatic;
+
+    // Joystick Controls
+
+    public FloatingJoystick joystick;
 
     private void Awake()
     {
@@ -100,22 +112,17 @@ public class GameLogic : MonoBehaviour
             player.useGravity = true;
             player.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
-            if (Input.GetKey(KeyCode.UpArrow) && !jumpPressed && jumpUnlocked)
+            if (joystick.Vertical > 0.5 && !jumpPressed && jumpUnlocked)
             {
                 audioSource.PlayOneShot(clip);
                 player.AddForce(Vector3.up * upForce);
                 jumpPressed = true;
             }
 
-            if (Input.GetKey(KeyCode.RightArrow) && moveUnlocked)
+            if (moveUnlocked)
             {
-                player.MovePosition(player.position + new Vector3(playerSpeed * Time.fixedDeltaTime, 0));
+                player.MovePosition(player.position + new Vector3(playerSpeed * joystick.Horizontal * Time.fixedDeltaTime, 0));
             }
-
-            if (Input.GetKey(KeyCode.LeftArrow) && moveUnlocked)
-            {
-                player.MovePosition(player.position + new Vector3(-playerSpeed * Time.fixedDeltaTime, 0));
-            }        
         }
         else
         {
@@ -130,6 +137,69 @@ public class GameLogic : MonoBehaviour
         jumpTimer = 1f;
     }
 
+    public void MiddleButtonPressed()
+    {
+        if (shiftUnlocked)
+        {
+            trigger = true;
+        }
+    }
+
+    public void LeftButtonPressed()
+    {
+        leftButtonPressed = true;
+    }
+
+    public void LeftButtonNotPressed()
+    {
+        leftButtonPressed = false;
+    }
+    
+    public void RightButtonPressed()
+    {
+        rightButtonPressed = true;
+    }
+
+    public void RightButtonNotPressed()
+    {
+        rightButtonPressed = false;
+    }
+
+    public void UpButtonPressed()
+    {
+        upButtonPressed = true;
+    }
+
+    public void UpButtonNotPressed()
+    {
+        upButtonPressed = false;
+    }
+
+    public void DownButtonPressed()
+    {
+        downButtonPressed = true;
+    }
+
+    public void DownButtonNotPressed()
+    {
+        downButtonPressed = false;
+    }
+
+    bool callOnce = false;
+
+    void CallOncePerTrigger()
+    {
+        callOnce = true;
+
+        joystick.AxisOptions = AxisOptions.Vertical;
+        joystickBackground.sprite = verticalAxis;
+
+        border.enabled = true;
+        trail.enabled = false;
+
+        player.GetComponent<BoxCollider>().enabled = false;
+    }
+
     void Update()
     {   
         // Non physics triggers handled here
@@ -142,12 +212,7 @@ public class GameLogic : MonoBehaviour
             {
                 JumpPressedToFalse();
             }
-        }
-
-        if (Input.GetKeyDown(KeyCode.Space) && shiftUnlocked)
-        {
-            trigger = true;
-        }
+        }    
 
         // Scene Transition triggers and Linear Interpolation handled here
 
@@ -158,15 +223,19 @@ public class GameLogic : MonoBehaviour
             chromatic.intensity.value = Mathf.Lerp(1, 0, timer);
 
             if (origin)
-            {
-                if (!border.enabled)
-                    border.enabled = true;
+            {                
+                if (!callOnce)
+                    CallOncePerTrigger();                   
 
-                if (trail.enabled)
-                    trail.enabled = false;
+                // Currently due to lack of properly 3D to 2D Mapping, keeping this commented
 
-                if (player.GetComponent<BoxCollider>().enabled)
-                    player.GetComponent<BoxCollider>().enabled = false;
+                //if (!meshRenderers[meshRenderers.Count - 1].enabled)
+                //{
+                //    foreach (var item in meshRenderers)
+                //    {
+                //        item.enabled = true;
+                //    }
+                //}
 
                 camAudio.volume = Mathf.Lerp(1f, 0.25f, timer);
                 camAudio.pitch = Mathf.Lerp(1f, 0.5f, timer);
@@ -184,6 +253,7 @@ public class GameLogic : MonoBehaviour
                     timer = 0;
                     origin = false;
                     trigger = false;
+                    callOnce = false;
                 }
             }
             else
@@ -211,20 +281,30 @@ public class GameLogic : MonoBehaviour
                     trigger = false;
                     trail.enabled = true;
                     player.GetComponent<BoxCollider>().enabled = true;
+
+                    joystick.AxisOptions = AxisOptions.Both;
+                    joystickBackground.sprite = allAxis;
+
+                    // Currently due to lack of properly 3D to 2D Mapping, keeping this commented
+
+                    //foreach (var item in meshRenderers)
+                    //{
+                    //    item.enabled = false;
+                    //}
                 }
             }
         }
 
         if (!origin)
         {
-            if (Input.GetKey(KeyCode.UpArrow))
+            if (joystick.Vertical > 0.33f)
             {
                 canvas.position = new Vector3(canvas.position.x, canvas.position.y, canvas.position.z + canvasSpeed * Time.deltaTime);
                 t1.position = new Vector3(t1.position.x, t1.position.y, t1.position.z + canvasSpeed * Time.deltaTime);
                 t2.position = new Vector3(t2.position.x, t2.position.y, t2.position.z + canvasSpeed * Time.deltaTime);
                 cam.transform.position = new Vector3(cam.transform.position.x, cam.transform.position.y, cam.transform.position.z + canvasSpeed * Time.deltaTime);
             }
-            else if (Input.GetKey(KeyCode.DownArrow))
+            else if (joystick.Vertical < -0.33f)
             {
                 canvas.position = new Vector3(canvas.position.x, canvas.position.y, canvas.position.z - canvasSpeed * Time.deltaTime);
                 t1.position = new Vector3(t1.position.x, t1.position.y, t1.position.z - canvasSpeed * Time.deltaTime);
@@ -232,17 +312,24 @@ public class GameLogic : MonoBehaviour
                 cam.transform.position = new Vector3(cam.transform.position.x, cam.transform.position.y, cam.transform.position.z - canvasSpeed * Time.deltaTime);
             }
 
-            if (Input.GetKey(KeyCode.G) && rotateUnlocked)
+            if (upButtonPressed && rotateUnlocked)
             {
-                level.Rotate(1, 0, 0);
+                level.Rotate(rotateSpeed * Time.deltaTime, 0, 0);
             }
-            else if (Input.GetKey(KeyCode.H) && rotateUnlocked)
+
+            if (downButtonPressed && rotateUnlocked)
             {
-                level.Rotate(0, 1, 0);
+                level.Rotate(-rotateSpeed * Time.deltaTime, 0, 0);
             }
-            else if (Input.GetKey(KeyCode.J) && rotateUnlocked)
+
+            if (leftButtonPressed && rotateUnlocked)
             {
-                level.Rotate(0, 0, 1);
+                level.Rotate(0, rotateSpeed * Time.deltaTime, 0);
+            }
+
+            if (rightButtonPressed && rotateUnlocked)
+            {
+                level.Rotate(0, -rotateSpeed * Time.deltaTime, 0);
             }
         }              
     }

@@ -5,14 +5,8 @@ using UnityEngine.SceneManagement;
 
 public class Enter : MonoBehaviour
 {
-    private void Update()
+    public void EnterButtonClicked()
     {
-
-        // Reload the scene if player hits Return button
-
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            SceneManager.LoadScene(1);
-        }
+        SceneManager.LoadScene(1);
     }
 }

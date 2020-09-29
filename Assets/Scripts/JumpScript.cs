@@ -79,15 +79,15 @@ public class JumpScript : MonoBehaviour
         GetComponent<AudioSource>().PlayOneShot(clip);
     }
 
+    // Reset the scene if player pressed R
+
+    public void RestartButtonPressed()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
     private void Update()
     {
-        // Reset the scene if player pressed R
-
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
-
         if (endTime)
         {
             timer += Time.unscaledDeltaTime * 2;
@@ -106,7 +106,6 @@ public class JumpScript : MonoBehaviour
         
         if (endTime2)
         {
-            Debug.Log("Workin");
             timer -= Time.unscaledDeltaTime * 2;
             timer = Mathf.Clamp01(timer);
 

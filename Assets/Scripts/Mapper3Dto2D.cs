@@ -4,9 +4,25 @@ using UnityEngine;
 
 public class Mapper3Dto2D : MonoBehaviour
 {
-    static Material lineMaterial; // Put in the Line material of choice
+    static Material lineMaterial;
+    public int type = 1;
+    Color color;
 
-    // Once per collision call while drawing in World Space
+    private void Start()
+    {
+        if (type == 1)
+        {
+            color = Color.white;
+        }
+        else if (type == 2)
+        {
+            color = Color.cyan;
+        }
+        else if (type == 3)
+        {
+            color = Color.red;
+        }
+    }
 
     static void CreateLineMaterial()
     {
@@ -22,31 +38,32 @@ public class Mapper3Dto2D : MonoBehaviour
         }
     }
 
-    Vector3[] points = new Vector3[4];
-    bool printOK = false;
+    Vector3 topLeft = Vector3.zero, topRight = Vector3.zero, bottomLeft = Vector3.zero, bottomRight = Vector3.zero;
 
-    // Called every frame a collision happens
-
-    private void OnCollisionStay(Collision collision)
+    public void GetProjectionPoints(int count,Vector3 point)
     {
-        for (int i = 0; i < collision.contacts.Length; i++)
+        if (count == 1)
         {
-            // Store all the 4 closest points to the edge collision points in the array
-
-            points[i] =  (collision.contacts[i].point);
-            Debug.DrawRay(points[i], Vector3.forward, Color.cyan, 1); // Used for visualizing points from rays
+            topLeft = point;
         }
-        printOK = true;
+        else if (count == 2)
+        {
+            topRight = point;
+        }
+        else if (count == 3)
+        {
+            bottomLeft = point;
+        }
+        else if (count == 4)
+        {
+            bottomRight = point;
+        }
     }
-    
-    // Called every frame after MainCamera is done rendering everything
 
     void OnRenderObject()
     {
-        if (!printOK) // Check if collision is true, depending on that render the 2D Shape
+        if (topLeft == Vector3.zero || topRight == Vector3.zero || bottomLeft == Vector3.zero || bottomRight == Vector3.zero)
             return;
-
-        // Create a 2D Shape from the points calculated to represent the 3D Shape
 
         CreateLineMaterial();
 
@@ -54,27 +71,12 @@ public class Mapper3Dto2D : MonoBehaviour
 
         GL.PushMatrix();
         GL.Begin(GL.QUADS);
-        GL.Color(Color.red);
+        GL.Color(color);
 
-        GL.Vertex3(points[0].x, points[0].y, points[0].z);
-        GL.Vertex3(points[1].x, points[1].y, points[1].z);
-        GL.Vertex3(points[2].x, points[2].y, points[2].z);
-        GL.Vertex3(points[3].x, points[3].y, points[3].z);
-
-        GL.Vertex3(points[3].x, points[3].y, points[3].z);
-        GL.Vertex3(points[0].x, points[0].y, points[0].z);
-        GL.Vertex3(points[1].x, points[1].y, points[1].z);
-        GL.Vertex3(points[2].x, points[2].y, points[2].z);
-
-        GL.Vertex3(points[2].x, points[2].y, points[2].z);
-        GL.Vertex3(points[3].x, points[3].y, points[3].z);
-        GL.Vertex3(points[0].x, points[0].y, points[0].z);
-        GL.Vertex3(points[1].x, points[1].y, points[1].z);
-
-        GL.Vertex3(points[1].x, points[1].y, points[1].z);
-        GL.Vertex3(points[2].x, points[2].y, points[2].z);
-        GL.Vertex3(points[3].x, points[3].y, points[3].z);
-        GL.Vertex3(points[0].x, points[0].y, points[0].z);
+        GL.Vertex3(topLeft.x,topLeft.y,topLeft.z);
+        GL.Vertex3(bottomLeft.x,bottomLeft.y,bottomLeft.z);
+        GL.Vertex3(bottomRight.x,bottomRight.y,bottomRight.z);
+        GL.Vertex3(topRight.x, topRight.y, topRight.z);
 
         GL.End();
         GL.PopMatrix();
